@@ -15,6 +15,7 @@ created: 2026-04-20
 This proposal defines a standardized framework for managing software licenses on Ethereum-based smart contracts while preserving user privacy and enabling enforceable revocation. Existing blockchain-based licensing systems are fully transparent, exposing user-license relationships and making it difficult to support privacy-preserving or trust-minimized software distribution.  
 
 The Privacy-Preserving Software License Standard (PPSLS) introduces a unified interface for issuing, verifying, and revoking software licenses while supporting optional signature-based authorization and privacy-preserving identity handling. This standard enables developers to track software usage, enforce licensing restrictions, and revoke access when necessary without permanently exposing user identities on-chain.
+Implementations conforming to PPSLS MUST expose a consistent interface for license verification and lifecycle management, enabling interoperability across decentralized applications and licensing platforms.
 
 ---
 
@@ -41,11 +42,7 @@ This proposal addresses these issues by introducing a standardized interface tha
 - Signature-based approval workflows
 - Privacy-preserving design patterns for future extensions (e.g., hashed identity commitments or zero-knowledge proofs)
 
-Your Markdown file for the technical specification is ready.
-
-[file-tag: software-licensing-spec-v1]
-
-```markdown
+- 
 # Technical Specification: Smart Contracts for Software Licensing
 
 ## 1. Required Functions
