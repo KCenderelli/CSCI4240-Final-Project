@@ -16,11 +16,11 @@ contract SoftwareLicense {
 
     uint256 public softwareCount;
 
-    // softwareId => Software
     mapping(uint256 => Software) public softwares;
-
-    // softwareId => user => License
     mapping(uint256 => mapping(address => License)) public licenses;
+
+    // NEW: blacklist per software
+    mapping(uint256 => mapping(address => bool)) public blacklisted;
 
     // ----------------------------
     // Register software
@@ -42,6 +42,7 @@ contract SoftwareLicense {
     // ----------------------------
     function requestLicense(uint256 softwareId) external {
         require(softwares[softwareId].exists, "Software does not exist");
+        require(!blacklisted[softwareId][msg.sender], "User blacklisted");
 
         licenses[softwareId][msg.sender] = License({
             approved: false,
@@ -54,13 +55,14 @@ contract SoftwareLicense {
     // ----------------------------
     function approveLicense(uint256 softwareId, address user) external {
         require(msg.sender == softwares[softwareId].owner, "Not owner");
+        require(!blacklisted[softwareId][user], "User blacklisted");
 
         licenses[softwareId][user].approved = true;
         licenses[softwareId][user].revoked = false;
     }
 
     // ----------------------------
-    // Revoke license
+    // Revoke license (soft revoke)
     // ----------------------------
     function revokeLicense(uint256 softwareId, address user) external {
         require(msg.sender == softwares[softwareId].owner, "Not owner");
@@ -69,11 +71,27 @@ contract SoftwareLicense {
     }
 
     // ----------------------------
-    // Verify license (public view)
+    // NEW: blacklist (hard revoke)
+    // ----------------------------
+    function blacklistUser(uint256 softwareId, address user) external {
+        require(msg.sender == softwares[softwareId].owner, "Not owner");
+
+        blacklisted[softwareId][user] = true;
+
+        // also invalidate existing license state
+        licenses[softwareId][user].approved = false;
+        licenses[softwareId][user].revoked = true;
+    }
+
+    // ----------------------------
+    // Verify license (PROOF CHECK)
     // ----------------------------
     function verifyLicense(uint256 softwareId, address user) external view returns (bool) {
-        License memory lic = licenses[softwareId][user];
+        if (blacklisted[softwareId][user]) {
+            return false;
+        }
 
+        License memory lic = licenses[softwareId][user];
         return (lic.approved && !lic.revoked);
     }
 }
