@@ -1,5 +1,7 @@
-// SPDX-License-Identifier: MIT
+ // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
+
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract SoftwareLicense {
 
@@ -12,18 +14,17 @@ contract SoftwareLicense {
     struct License {
         bool approved;
         bool revoked;
+        uint64 expiry;
     }
 
     uint256 public softwareCount;
 
     mapping(uint256 => Software) public softwares;
     mapping(uint256 => mapping(address => License)) public licenses;
-
-    // NEW: blacklist per software
     mapping(uint256 => mapping(address => bool)) public blacklisted;
 
     // ----------------------------
-    // Register software
+    // REGISTER SOFTWARE
     // ----------------------------
     function registerSoftware(bytes32 hash) external returns (uint256) {
         softwareCount++;
@@ -38,31 +39,51 @@ contract SoftwareLicense {
     }
 
     // ----------------------------
-    // Request license
+    // REQUEST LICENSE
     // ----------------------------
     function requestLicense(uint256 softwareId) external {
         require(softwares[softwareId].exists, "Software does not exist");
-        require(!blacklisted[softwareId][msg.sender], "User blacklisted");
+        require(!blacklisted[softwareId][msg.sender], "Blacklisted");
 
         licenses[softwareId][msg.sender] = License({
             approved: false,
-            revoked: false
+            revoked: false,
+            expiry: 0
         });
     }
 
     // ----------------------------
-    // Approve license
+    // ADMIN APPROVAL
     // ----------------------------
-    function approveLicense(uint256 softwareId, address user) external {
+    function approveLicense(
+        uint256 softwareId,
+        address user,
+        uint64 expiry
+    ) external {
         require(msg.sender == softwares[softwareId].owner, "Not owner");
-        require(!blacklisted[softwareId][user], "User blacklisted");
+        require(!blacklisted[softwareId][user], "Blacklisted");
 
-        licenses[softwareId][user].approved = true;
-        licenses[softwareId][user].revoked = false;
+        licenses[softwareId][user] = License({
+            approved: true,
+            revoked: false,
+            expiry: expiry
+        });
     }
 
     // ----------------------------
-    // Revoke license (soft revoke)
+    // BLACKLIST (hard revoke)
+    // ----------------------------
+    function blacklistUser(uint256 softwareId, address user) external {
+        require(msg.sender == softwares[softwareId].owner, "Not owner");
+
+        blacklisted[softwareId][user] = true;
+
+        licenses[softwareId][user].approved = false;
+        licenses[softwareId][user].revoked = true;
+    }
+
+    // ----------------------------
+    // SOFT REVOKE
     // ----------------------------
     function revokeLicense(uint256 softwareId, address user) external {
         require(msg.sender == softwares[softwareId].owner, "Not owner");
@@ -71,27 +92,36 @@ contract SoftwareLicense {
     }
 
     // ----------------------------
-    // NEW: blacklist (hard revoke)
+    // VERIFY LICENSE (PROOF CHECK)
     // ----------------------------
-    function blacklistUser(uint256 softwareId, address user) external {
-        require(msg.sender == softwares[softwareId].owner, "Not owner");
+    function verifyLicense(uint256 softwareId, address user) external view returns (bool) {
+        if (blacklisted[softwareId][user]) return false;
 
-        blacklisted[softwareId][user] = true;
+        License memory lic = licenses[softwareId][user];
 
-        // also invalidate existing license state
-        licenses[softwareId][user].approved = false;
-        licenses[softwareId][user].revoked = true;
+        if (!lic.approved) return false;
+        if (lic.revoked) return false;
+        if (lic.expiry != 0 && block.timestamp > lic.expiry) return false;
+
+        return true;
     }
 
     // ----------------------------
-    // Verify license (PROOF CHECK)
+    // MESSAGE HASH FOR SIGNING
     // ----------------------------
-    function verifyLicense(uint256 softwareId, address user) external view returns (bool) {
-        if (blacklisted[softwareId][user]) {
-            return false;
-        }
-
-        License memory lic = licenses[softwareId][user];
-        return (lic.approved && !lic.revoked);
+    function getMessageHash(
+        uint256 softwareId,
+        address user,
+        uint64 expiry
+    ) public view returns (bytes32) {
+        return keccak256(
+            abi.encodePacked(
+                "LICENSE",
+                softwareId,
+                user,
+                expiry,
+                address(this)
+            )
+        );
     }
 }
