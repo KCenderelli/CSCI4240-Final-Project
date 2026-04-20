@@ -1,7 +1,7 @@
 ---
 eip: Draft
 title: Privacy-Preserving Software License Standard
-author: Kira Cenderelli, Daria, Zunni
+author: Kira, Daria, Zunni
 status: Draft
 type: Standards Track
 category: ERC
