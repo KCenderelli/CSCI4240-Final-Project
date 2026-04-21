@@ -132,8 +132,6 @@ By implementing this logic directly within a smart contract, the system ensures:
 * **Public Auditability:** The state of software ownership and global blacklists can be verified by any stakeholder.
 
 > **Note:** While on-chain enforcement provides security, it introduces transparency challenges that the Privacy Extensions aim to mitigate.
-Here is the formatted completion of your EIP/Technical Specification. I have consolidated the repeated sections (Rationale, Security, and Reference Implementation) into a cohesive structure that flows naturally from the previous sections.
-
 ---
 
 ### 5. Revocation & Enforcement Model
