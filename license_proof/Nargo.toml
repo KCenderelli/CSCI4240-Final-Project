@@ -1,0 +1,6 @@
+[package]
+name = "license_proof"
+type = "bin"
+authors = [""]
+
+[dependencies]
